@@ -1,20 +1,25 @@
 module.exports = {
-  extends: ["alloy", "alloy/typescript"],
   env: {
-    // Your environments (which contains several predefined global variables)
-    //
-    // browser: true,
-    // node: true,
-    // mocha: true,
-    // jest: true,
-    // jquery: true
+    browser: true,
+    es2021: true,
   },
-  globals: {
-    // Your global variables (setting to false means it's not allowed to be reassigned)
-    //
-    // myGlobal: false
+  extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended", "prettier"],
+  overrides: [
+    {
+      env: {
+        node: true,
+      },
+      files: [".eslintrc.{js,cjs}"],
+      parserOptions: {
+        sourceType: "script",
+      },
+    },
+  ],
+  parser: "@typescript-eslint/parser",
+  parserOptions: {
+    ecmaVersion: "latest",
+    sourceType: "module",
   },
-  rules: {
-    // Customize your rules
-  },
+  plugins: ["@typescript-eslint"],
+  rules: {},
 };
