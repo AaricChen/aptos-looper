@@ -2,15 +2,16 @@
   "name": "ts-cli-template",
   "version": "1.0.0",
   "description": "Template for create typescript command line.",
-  "main": "bin/index.js",
-  "bin": "./bin/index.js",
+  "main": "bin/src/index.js",
+  "bin": "./bin/src/index.js",
   "files": [
     "bin"
   ],
   "scripts": {
-    "start": "npm run build && node ./bin/index.js",
+    "start": "pnpm build && node ./bin/src/index.js",
     "lint": "eslint --ext .js,.ts",
-    "build": "rimraf ./bin && npx tsc"
+    "build": "rimraf ./bin && npx tsc",
+    "next": "npm version patch && git push && git push --tags"
   },
   "keywords": [],
   "author": "aaricchen@gmail.com",
