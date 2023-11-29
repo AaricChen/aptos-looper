@@ -1,16 +1,92 @@
 #! /usr/bin/env node
 
+import colors from "ansicolor";
+import { APTOS_COIN, AptosAccount, AptosClient } from "aptos";
+import BigNumber from "bignumber.js";
 import { Command } from "commander";
 import { textSync } from "figlet";
+import fs from "fs";
+import nodemailer from "nodemailer";
 import { description, name, version } from "../package.json";
+
+const NODE_URL = "https://fullnode.mainnet.aptoslabs.com";
+const TARGE_FILE = "accounts.csv";
+
+interface Account {
+  key: string;
+  balance: number;
+}
 
 new Command()
   .version(version)
   .description(description)
-  .action((args) => {
+  .option("-n, --number <value>", "Account counts", "100")
+  .option("-m, --email <value>", "Notification email", "")
+  .option("-u, --user <value>", "Email service username", "")
+  .option("-p, --pass <value>", "Email service password", "")
+  .action(async (options) => {
     console.log(textSync(name));
     console.log(version);
-    console.log(description);
-    console.log("🚀 ~ file: index.ts:12 ~ args:", args);
+    const accountCounts = Number(options.number);
+    const email = options.email;
+    const emailServiceUser = options.user;
+    const emailServicePass = options.pass;
+    const aptosClient = new AptosClient(NODE_URL);
+    const transporter = nodemailer.createTransport({
+      host: "smtp.qq.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: emailServiceUser,
+        pass: emailServicePass,
+      },
+    });
+    for (let index = 0; index < accountCounts; index++) {
+      await verifyAccount(
+        index + 1,
+        accountCounts,
+        aptosClient,
+        async (account) => {
+          if (email) {
+            transporter.sendMail({
+              from: `Aptos Looper <${emailServiceUser}>`,
+              to: email,
+              subject: `Find target with balance ${account.balance}`,
+              text: account.key,
+            });
+          }
+        }
+      );
+    }
   })
   .parse(process.argv);
+
+async function verifyAccount(
+  current: number,
+  total: number,
+  client: AptosClient,
+  onTarget: (target: Account) => Promise<void>
+) {
+  const account = new AptosAccount();
+  console.log(colors.dim(`[${current}/${total}] ${account.address().hex()}`));
+  try {
+    const resources = await client.getAccountResources(account.address());
+    const balanceResource = resources.find(
+      (it) => it.type === `0x1::coin::CoinStore<${APTOS_COIN}>`
+    );
+    if (balanceResource) {
+      const balance = (balanceResource as any).data.coin.value;
+      const amount = BigNumber(balance).div(BigNumber(10).pow(8));
+
+      if (amount.gt(0)) {
+        const target: Account = {
+          key: account.toPrivateKeyObject().privateKeyHex,
+          balance: amount.toNumber(),
+        };
+        fs.appendFileSync(TARGE_FILE, `${target.key},${target.balance}\n`);
+        console.log(colors.yellow(target.key), colors.green(target.balance));
+        onTarget(target);
+      }
+    }
+  } catch (e) {}
+}
