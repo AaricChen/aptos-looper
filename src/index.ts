@@ -88,5 +88,12 @@ async function verifyAccount(
         onTarget(target);
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    const error = String(e);
+    if (error.includes("Account not found by Address")) {
+      console.log(colors.dim("Empty account"));
+    } else {
+      console.log(colors.dim(error));
+    }
+  }
 }
