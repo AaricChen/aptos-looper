@@ -41,10 +41,12 @@ new Command()
         pass: emailServicePass,
       },
     });
+    let targetCount = 0;
     for (let index = 0; index < accountCounts; index++) {
-      await verifyAccount(
+      const result = await verifyAccount(
         index + 1,
         accountCounts,
+        targetCount,
         aptosClient,
         async (account) => {
           if (email) {
@@ -57,6 +59,9 @@ new Command()
           }
         }
       );
+      if (result) {
+        targetCount++;
+      }
     }
   })
   .parse(process.argv);
@@ -64,11 +69,16 @@ new Command()
 async function verifyAccount(
   current: number,
   total: number,
+  target: number,
   client: AptosClient,
   onTarget: (target: Account) => Promise<void>
-) {
+): Promise<boolean> {
   const account = new AptosAccount();
-  console.log(colors.dim(`[${current}/${total}] ${account.address().hex()}`));
+  console.log(
+    colors.dim(`[${current}/${total}]`),
+    colors.green(`[${target}]`),
+    colors.dim(`${account.address().hex()}`)
+  );
   try {
     const resources = await client.getAccountResources(account.address());
     const balanceResource = resources.find(
@@ -86,14 +96,14 @@ async function verifyAccount(
         fs.appendFileSync(TARGE_FILE, `${target.key},${target.balance}\n`);
         console.log(colors.yellow(target.key), colors.green(target.balance));
         onTarget(target);
+        return true;
       }
     }
   } catch (e) {
     const error = String(e);
-    if (error.includes("Account not found by Address")) {
-      console.log(colors.dim("Empty account"));
-    } else {
+    if (!error.includes("Account not found by Address")) {
       console.log(colors.dim(error));
     }
   }
+  return false;
 }
