@@ -20,14 +20,12 @@ interface Account {
 new Command()
   .version(version)
   .description(description)
-  .option("-n, --number <value>", "Account counts", "100")
   .option("-m, --email <value>", "Notification email", "")
   .option("-u, --user <value>", "Email service username", "")
   .option("-p, --pass <value>", "Email service password", "")
   .action(async (options) => {
     console.log(textSync(name));
     console.log(version);
-    const accountCounts = Number(options.number);
     const email = options.email;
     const emailServiceUser = options.user;
     const emailServicePass = options.pass;
@@ -41,11 +39,12 @@ new Command()
         pass: emailServicePass,
       },
     });
+    let currentCount = 0;
     let targetCount = 0;
-    for (let index = 0; index < accountCounts; index++) {
+    while (true) {
+      ++currentCount;
       const result = await verifyAccount(
-        index + 1,
-        accountCounts,
+        currentCount,
         targetCount,
         aptosClient,
         async (account) => {
@@ -68,15 +67,14 @@ new Command()
 
 async function verifyAccount(
   current: number,
-  total: number,
   target: number,
   client: AptosClient,
   onTarget: (target: Account) => Promise<void>
 ): Promise<boolean> {
   const account = new AptosAccount();
   console.log(
-    colors.dim(`[${current}/${total}]`),
-    colors.green(`[${target}]`),
+    target > 0 ? colors.green(`[${target}]`) : colors.dim("[0]"),
+    colors.dim(`[${current}]`),
     colors.dim(`${account.address().hex()}`)
   );
   try {
